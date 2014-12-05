@@ -58,6 +58,7 @@ CONFIG_HAVE_GENERIC_HARDIRQS=y
 #
 # Sensei Setup
 #
+CONFIG_MSM_SLEEPER=y
 
 #
 # IRQ subsystem
