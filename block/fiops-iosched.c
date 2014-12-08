@@ -55,6 +55,14 @@ struct fiops_data {
 	unsigned int async_scale;
 };
 
+static inline int task_ioprio(struct io_context *ioc)
+{
+	if (ioprio_valid(ioc->ioprio))
+		return IOPRIO_PRIO_DATA(ioc->ioprio);
+
+	return IOPRIO_NORM;
+}
+
 struct fiops_ioc {
 	struct io_cq icq;
 
@@ -614,16 +622,28 @@ static void fiops_kick_queue(struct work_struct *work)
 	spin_unlock_irq(q->queue_lock);
 }
 
-static void *fiops_init_queue(struct request_queue *q)
+static int fiops_init_queue(struct request_queue *q, struct elevator_type *e)
 {
 	struct fiops_data *fiopsd;
 	int i;
+	struct elevator_queue *eq;
+
+	eq = elevator_alloc(q, e);
+	if (eq == NULL)
+		return -ENOMEM;
 
 	fiopsd = kzalloc_node(sizeof(*fiopsd), GFP_KERNEL, q->node);
-	if (!fiopsd)
-		return NULL;
+	if (fiopsd == NULL) {
+		kobject_put(&eq->kobj);
+		return -ENOMEM;
+	}
+	eq->elevator_data = fiopsd;
+
 
 	fiopsd->queue = q;
+	spin_lock_irq(q->queue_lock);
+	q->elevator = eq;
+	spin_unlock_irq(q->queue_lock);
 
 	for (i = IDLE_WORKLOAD; i <= RT_WORKLOAD; i++)
 		fiopsd->service_tree[i] = FIOPS_RB_ROOT;
@@ -635,7 +655,7 @@ static void *fiops_init_queue(struct request_queue *q)
 	fiopsd->sync_scale = VIOS_SYNC_SCALE;
 	fiopsd->async_scale = VIOS_ASYNC_SCALE;
 
-	return fiopsd;
+	return 0;
 }
 
 static void fiops_init_icq(struct io_cq *icq)
