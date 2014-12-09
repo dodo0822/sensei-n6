@@ -1,5 +1,5 @@
 #!/bin/bash
-
+rm .version
 # Bash Color
 green='\033[01;32m'
 red='\033[01;31m'
@@ -33,7 +33,7 @@ REPACK_DIR="${HOME}/android/AK-OnePone-AnyKernel2"
 PATCH_DIR="${HOME}/android/AK-OnePone-AnyKernel2/patch"
 MODULES_DIR="${HOME}/android/AK-OnePone-AnyKernel2/modules"
 ZIP_MOVE="${HOME}/android/AK-releases"
-ZIMAGE_DIR="${HOME}/android/AK-OnePone/arch/arm/boot"
+ZIMAGE_DIR="${HOME}/android/sensei-n6/arch/arm/boot"
 
 # Functions
 function clean_all {
@@ -64,8 +64,15 @@ function make_dtb {
 		$REPACK_DIR/tools/dtbToolCM -2 -o $REPACK_DIR/$DTBIMAGE -s 2048 -p scripts/dtc/ arch/arm/boot/
 }
 
+function make_boot {
+		cp -vr $ZIMAGE_DIR/zImage-dtb ~/android/sensei-n6/ramdisk/zImage-dtb
+		
+		. appendramdisk.sh
+}
+
+
 function make_zip {
-		cd $REPACK_DIR
+		cd ~/android/sensei-n6/out
 		zip -r9 `echo $AK_VER`.zip *
 		mv  `echo $AK_VER`.zip $ZIP_MOVE
 		cd $KERNEL_DIR
@@ -116,6 +123,7 @@ case "$dchoice" in
 		make_kernel
 		make_dtb
 		make_modules
+		make_boot
 		make_zip
 		break
 		;;
