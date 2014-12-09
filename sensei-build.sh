@@ -16,7 +16,7 @@ DEFCONFIG="shamu_defconfig"
 
 # Kernel Details
 BASE_AK_VER="SENSEI"
-VER=".R1"
+VER=".R4"
 AK_VER="$BASE_AK_VER$VER"
 
 # Vars
@@ -38,7 +38,7 @@ ZIMAGE_DIR="${HOME}/android/sensei-n6/arch/arm/boot"
 # Functions
 function clean_all {
 		rm -rf $MODULES_DIR/*
-		cd $REPACK_DIR
+		cd ~/android/sensei-n6/ramdisk
 		rm -rf $KERNEL
 		rm -rf $DTBIMAGE
 		git reset --hard > /dev/null 2>&1
@@ -52,7 +52,7 @@ function make_kernel {
 		echo
 		make $DEFCONFIG
 		make $THREAD
-		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR
+		cp -vr $ZIMAGE_DIR/$KERNEL ~/android/sensei-n6/ramdisk
 }
 
 function make_modules {
