@@ -16,7 +16,7 @@ DEFCONFIG="shamu_defconfig"
 
 # Kernel Details
 BASE_AK_VER="SENSEI"
-VER=".R8"
+VER=".R9"
 AK_VER="$BASE_AK_VER$VER"
 
 # Vars
