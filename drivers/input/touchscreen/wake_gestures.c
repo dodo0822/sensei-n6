@@ -64,6 +64,7 @@
 #define SWEEP_LEFT		0x02
 #define SWEEP_UP		0x04
 #define SWEEP_DOWN		0x08
+#define VIB_STRENGTH 		20
 
 
 #define WAKE_GESTURES_ENABLED	0
@@ -89,6 +90,7 @@ static unsigned long pwrtrigger_time[2] = {0, 0};
 static unsigned long long tap_time_pre = 0;
 static int touch_nr = 0, x_pre = 0, y_pre = 0;
 static bool touch_cnt = true;
+int vib_strength = VIB_STRENGTH;
 
 static struct input_dev * wake_dev;
 static DEFINE_MUTEX(pwrkeyworklock);
