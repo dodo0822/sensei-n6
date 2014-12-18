@@ -176,8 +176,6 @@ struct ion_heap {
 	wait_queue_head_t waitqueue;
 	struct task_struct *task;
 	int (*debug_show)(struct ion_heap *heap, struct seq_file *, void *);
-	atomic_t total_allocated;
-	atomic_t total_handles;
 };
 
 /**
@@ -242,16 +240,6 @@ int msm_ion_heap_buffer_zero(struct ion_buffer *buffer);
 int msm_ion_heap_pages_zero(struct page **pages, int num_pages);
 int msm_ion_heap_alloc_pages_mem(struct pages_mem *pages_mem);
 void msm_ion_heap_free_pages_mem(struct pages_mem *pages_mem);
-
-/**
- * ion_heap_init_shrinker
- * @heap:		the heap
- *
- * If a heap sets the ION_HEAP_FLAG_DEFER_FREE flag or defines the shrink op
- * this function will be called to setup a shrinker to shrink the freelists
- * and call the heap's shrink op.
- */
-void ion_heap_init_shrinker(struct ion_heap *heap);
 
 /**
  * ion_heap_init_shrinker
@@ -343,9 +331,6 @@ void ion_carveout_heap_destroy(struct ion_heap *);
 
 struct ion_heap *ion_chunk_heap_create(struct ion_platform_heap *);
 void ion_chunk_heap_destroy(struct ion_heap *);
-struct ion_heap *ion_cma_heap_create(struct ion_platform_heap *);
-void ion_cma_heap_destroy(struct ion_heap *);
-
 /**
  * kernel api to allocate/free from carveout -- used when carveout is
  * used to back an architecture specific custom heap
