@@ -67,23 +67,6 @@ uint32_t maxscroff = 1;
 /* ex max freq */
 uint32_t ex_max_freq;
 
-//elementalx
-static unsigned long arg_cpu_oc = 2649600;
-
-static int __init cpufreq_read_cpu_oc(char *cpu_oc)
-{
-	unsigned long ui_khz;
-	int err;
-
-	err =  strict_strtoul(cpu_oc, 0, &ui_khz);
-	if (err)
-		arg_cpu_oc = 2649600;
-
-	arg_cpu_oc = ui_khz;
-	printk("elementalx: cpu_oc=%lu\n", arg_cpu_oc);
-	return 0;
-}
-__setup("cpu_oc=", cpufreq_read_cpu_oc);
 
 static DEFINE_PER_CPU(struct cpufreq_suspend_t, cpufreq_suspend);
 
