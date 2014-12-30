@@ -22,6 +22,7 @@
 #include <linux/atomic.h>
 #include <linux/scatterlist.h>
 #include <linux/rbtree.h>
+#include <linux/sched/rt.h>
 #include <asm/page.h>
 #include <asm/unaligned.h>
 #include <crypto/hash.h>
@@ -1208,9 +1209,17 @@ static void kcryptd_async_done(struct crypto_async_request *async_req,
 		kcryptd_crypt_write_io_submit(io);
 }
 
+/**
+ * Very high priority. Max is -20 but we would be mad to boost it that high
+ * Needs testing to see if this impacts user experience
+ */
+static int _kcryptd_nice = -15;
+
 static void kcryptd_crypt(struct work_struct *work)
 {
 	struct dm_crypt_io *io = container_of(work, struct dm_crypt_io, work);
+
+	set_user_nice(current, _kcryptd_nice);
 
 	if (bio_data_dir(io->base_bio) == READ)
 		kcryptd_crypt_read_convert(io);
@@ -1548,6 +1557,8 @@ static int crypt_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	const char *opt_string;
 	char dummy;
 
+	struct sched_param param = { .sched_priority = MAX_RT_PRIO - 2 };
+
 	static struct dm_arg _args[] = {
 		{0, 1, "Invalid number of feature args"},
 	};
@@ -1573,24 +1584,13 @@ static int crypt_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 
 	cc->dmreq_start = sizeof(struct ablkcipher_request);
 	cc->dmreq_start += crypto_ablkcipher_reqsize(any_tfm(cc));
-	cc->dmreq_start = ALIGN(cc->dmreq_start, __alignof__(struct dm_crypt_request));
-
-	if (crypto_ablkcipher_alignmask(any_tfm(cc)) < CRYPTO_MINALIGN) {
-		/* Allocate the padding exactly */
-		iv_size_padding = -(cc->dmreq_start + sizeof(struct dm_crypt_request))
-				& crypto_ablkcipher_alignmask(any_tfm(cc));
-	} else {
-		/*
-		 * If the cipher requires greater alignment than kmalloc
-		 * alignment, we don't know the exact position of the
-		 * initialization vector. We must assume worst case.
-		 */
-		iv_size_padding = crypto_ablkcipher_alignmask(any_tfm(cc));
-	}
+	cc->dmreq_start = ALIGN(cc->dmreq_start, crypto_tfm_ctx_alignment());
+	cc->dmreq_start += crypto_ablkcipher_alignmask(any_tfm(cc)) &
+			   ~(crypto_tfm_ctx_alignment() - 1);
 
 	ret = -ENOMEM;
 	cc->req_pool = mempool_create_kmalloc_pool(MIN_IOS, cc->dmreq_start +
-			sizeof(struct dm_crypt_request) + iv_size_padding + cc->iv_size);
+			sizeof(struct dm_crypt_request) + cc->iv_size);
 	if (!cc->req_pool) {
 		ti->error = "Cannot allocate crypt request mempool";
 		goto bad;
@@ -1668,7 +1668,7 @@ static int crypt_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 
 	cc->crypt_queue = alloc_workqueue("kcryptd",
 					  WQ_CPU_INTENSIVE | WQ_MEM_RECLAIM |
-					  WQ_UNBOUND, num_possible_cpus() * 2);
+					  WQ_UNBOUND, num_possible_cpus());
 	if (!cc->crypt_queue) {
 		ti->error = "Couldn't create kcryptd queue";
 		goto bad;
@@ -1687,6 +1687,7 @@ static int crypt_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 #ifdef CONFIG_INTELLI_PLUG
 	intelli_plug_perf_boost(true);
 #endif
+	sched_setscheduler_nocheck(cc->write_thread, SCHED_FIFO, &param);
 	wake_up_process(cc->write_thread);
 
 	ti->num_flush_bios = 1;
