@@ -486,7 +486,7 @@ int kgsl_context_init(struct kgsl_device_private *dev_priv,
 			struct kgsl_context *context)
 {
 	struct kgsl_device *device = dev_priv->device;
-	char name[64];
+	
 	int ret = 0, id;
 
 	id = _kgsl_get_context_id(device, context);

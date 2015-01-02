@@ -136,6 +136,8 @@ struct kgsl_functable {
 						uint32_t *flags);
 	int (*drawctxt_detach) (struct kgsl_context *context);
 	void (*drawctxt_destroy) (struct kgsl_context *context);
+	void (*drawctxt_dump) (struct kgsl_device *device,
+		struct kgsl_context *context);
 	long (*ioctl) (struct kgsl_device_private *dev_priv,
 		unsigned int cmd, void *data);
 	long (*compat_ioctl) (struct kgsl_device_private *dev_priv,
