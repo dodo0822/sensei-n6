@@ -1214,7 +1214,7 @@ static void kcryptd_async_done(struct crypto_async_request *async_req,
  * Very high priority. Max is -20 but we would be mad to boost it that high
  * Needs testing to see if this impacts user experience
  */
-static int _kcryptd_nice = -15;
+static int _kcryptd_nice = -6;
 
 static void kcryptd_crypt(struct work_struct *work)
 {
@@ -1533,7 +1533,6 @@ static int crypt_ctr_cipher(struct dm_target *ti,
 	}
 
 	ret = 0;
-	pr_info("[imoseyon] dm-crypt cipher is %s\n", cipher_api);
 bad:
 	kfree(cipher_api);
 	return ret;
@@ -1553,12 +1552,9 @@ static int crypt_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 	unsigned int key_size, opt_params;
 	unsigned long long tmpll;
 	int ret;
-	size_t iv_size_padding;
 	struct dm_arg_set as;
 	const char *opt_string;
 	char dummy;
-
-	struct sched_param param = { .sched_priority = NICE_TO_PRIO(_kcryptd_nice) };
 
 	static struct dm_arg _args[] = {
 		{0, 1, "Invalid number of feature args"},
@@ -1669,7 +1665,7 @@ static int crypt_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 
 	cc->crypt_queue = alloc_workqueue("kcryptd",
 					  WQ_CPU_INTENSIVE | WQ_MEM_RECLAIM |
-					  WQ_UNBOUND, num_possible_cpus() * 2);
+					  WQ_UNBOUND, num_possible_cpus());
 	if (!cc->crypt_queue) {
 		ti->error = "Couldn't create kcryptd queue";
 		goto bad;
@@ -1688,7 +1684,6 @@ static int crypt_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 #ifdef CONFIG_INTELLI_PLUG
 	intelli_plug_perf_boost(true);
 #endif
-	sched_setscheduler_nocheck(cc->write_thread, SCHED_FIFO, &param);
 	wake_up_process(cc->write_thread);
 
 	ti->num_flush_bios = 1;
