@@ -280,6 +280,9 @@ void adreno_drawctxt_invalidate(struct kgsl_device *device,
 
 	mutex_unlock(&drawctxt->mutex);
 
+	/* Make sure all pending events are processed or cancelled */
+	kgsl_flush_event_group(device, &context->events);
+
 	/* Give the bad news to everybody waiting around */
 	wake_up_all(&drawctxt->waiting);
 	wake_up_all(&drawctxt->wq);
