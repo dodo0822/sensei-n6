@@ -340,23 +340,6 @@ void cpufreq_notify_utilization(struct cpufreq_policy *policy,
  
 }
 
-/* Yank555.lu : INTELLI_THERMAL - replace msm_cpufreq_set_limits missing on shamu */
-#ifdef CONFIG_INTELLI_THERMAL
-extern int msm_thermal_set_freq_limits(uint32_t cpu, uint32_t max)
-{
-	struct cpufreq_policy *policy;
-
-	policy = cpufreq_cpu_get(cpu);
-	if (policy != NULL) {
-		if (max == INTELLI_THERMAL_CPUFREQ_NO_LIMIT)
-			cpufreq_verify_within_limits(policy, policy->min, policy->cpuinfo.max_freq);
-		else
-			cpufreq_verify_within_limits(policy, policy->min, max);
-		return 0;
-	}
-	return 1;
-}
-#endif
 /*********************************************************************
  *                          SYSFS INTERFACE                          *
  *********************************************************************/
@@ -460,9 +443,6 @@ static ssize_t store_##file_name					\
 	if (ret)							\
 		return -EINVAL;						\
 									\
-	new_policy.min = new_policy.user_policy.min;			\
-	new_policy.max = new_policy.user_policy.max;			\
-									\
 	ret = sscanf(buf, "%u", &new_policy.object);			\
 	if (ret != 1)							\
 		return -EINVAL;						\
@@ -471,9 +451,7 @@ static ssize_t store_##file_name					\
 	if (ret)							\
 		pr_err("cpufreq: Frequency verification failed\n");	\
 									\
-	policy->user_policy.min = new_policy.min;			\
-	policy->user_policy.max = new_policy.max;			\
-									\
+	policy->user_policy.object = new_policy.object;			\
 	ret = cpufreq_set_policy(policy, &new_policy);		\
 									\
 	return ret ? ret : count;					\
@@ -1498,10 +1476,13 @@ static unsigned int __cpufreq_get(unsigned int cpu)
 	struct cpufreq_policy *policy = per_cpu(cpufreq_cpu_data, cpu);
 	unsigned int ret_freq = 0;
 
-	if (!cpufreq_driver->get)
+	if (!cpufreq_driver->get || policy == 0)
 		return ret_freq;
 
 	ret_freq = cpufreq_driver->get(cpu);
+
+	if (!policy)
+		return ret_freq;
 
 	if (ret_freq && policy->cur &&
 		!(cpufreq_driver->flags & CPUFREQ_CONST_LOOPS)) {
