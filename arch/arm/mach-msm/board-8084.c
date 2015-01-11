@@ -135,11 +135,6 @@ void __init apq8084_add_drivers(void)
 #if defined(CONFIG_LCD_KCAL)
 	shamu_add_lcd_kcal_devices();
 #endif
-#ifdef CONFIG_INTELLI_THERMAL
-	msm_thermal_init(NULL);
-#else
-	msm_thermal_device_init();
-#endif
 }
 
 static void __init apq8084_map_io(void)
