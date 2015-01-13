@@ -1503,7 +1503,7 @@ static int smb135x_set_usb_chg_current(struct smb135x_chg *chip,
 			rc = smb135x_masked_write(chip, CFG_5_REG, USB_2_3_BIT, USB_2_3_BIT);
 		else
 #endif
-			rc = smb135x_masked_write(chip, CFG_5_REG, USB_2_3_BIT, 0);
+		rc = smb135x_masked_write(chip, CFG_5_REG, USB_2_3_BIT, USB_2_3_BIT);
 	
 		rc |= smb135x_masked_write(chip, CMD_INPUT_LIMIT,
 				USB_100_500_AC_MASK, USB_500_VAL);
