@@ -16,12 +16,12 @@ DEFCONFIG="shamu_defconfig"
 
 # Kernel Details
 BASE_AK_VER="SENSEI"
-VER=".R39-NOOC"
+VER=".R40"
 AK_VER="$BASE_AK_VER$VER"
 
 # Vars
 export LOCALVERSION=~`echo $AK_VER`
-export CROSS_COMPILE=${HOME}/android/arm-eabi-4.9/bin/arm-eabi-
+export CROSS_COMPILE=${HOME}/android/Sabermod/bin/arm-eabi-
 export ARCH=arm
 export SUBARCH=arm
 export KBUILD_BUILD_USER=RIPng
