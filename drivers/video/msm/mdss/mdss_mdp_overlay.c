@@ -446,10 +446,12 @@ static int __mdss_mdp_overlay_setup_scaling(struct mdss_mdp_pipe *pipe)
 	if ((rc == -EOVERFLOW) && (pipe->type == MDSS_MDP_PIPE_TYPE_VIG)) {
 		/* overflow on Qseed2 scaler is acceptable */
 		rc = 0;
+	} else if (rc == -EOVERFLOW) {
+		/* overflow expected and should fallback to GPU */
+		rc = -ECANCELED;
 	} else if (rc) {
 		pr_err("Vertical scaling calculation failed=%d! %d->%d\n",
 				rc, src, pipe->dst.h);
-		return rc;
 	}
 	return rc;
 }
@@ -598,7 +600,7 @@ int mdss_mdp_overlay_pipe_setup(struct msm_fb_data_type *mfd,
 		}
 
 		if (pipe == NULL) {
-			pr_err("error allocating pipe. flags=0x%x\n",
+			pr_err_ratelimited("error allocating pipe. flags=0x%x\n",
 				req->flags);
 			return -ENODEV;
 		}
@@ -1014,6 +1016,10 @@ static void mdss_mdp_overlay_cleanup(struct msm_fb_data_type *mfd)
 			__mdss_mdp_overlay_free_list_add(mfd, &pipe->front_buf);
 		mdss_mdp_data_free(&pipe->back_buf);
 		list_del_init(&pipe->list);
+		if (recovery_mode) {
+			mdss_mdp_mixer_pipe_unstage(pipe, pipe->mixer_left);
+			mdss_mdp_mixer_pipe_unstage(pipe, pipe->mixer_right);
+		}
 		mdss_mdp_pipe_destroy(pipe);
 	}
 	mutex_unlock(&mdp5_data->list_lock);

@@ -46,6 +46,8 @@ allowed_warnings = set([
     "af_unix.c:893",
     "nl80211.c:58",
     "jhash.h:137",
+    "msm-pm.c:814",
+    "ci13xxx_udc.c:4003",
  ])
 
 # Capture the name of the object file, can find it.

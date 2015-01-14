@@ -1355,6 +1355,11 @@ static int __qseecom_send_cmd(struct qseecom_dev_handle *data,
 	bool found_app = false;
 	int name_len = 0;
 
+	if (!data || !data->client.ihandle) {
+		pr_err("Client or client handle is not initialized\n");
+		return -EINVAL;
+	}
+
 	if (req->cmd_req_buf == NULL || req->resp_buf == NULL) {
 		pr_err("cmd buffer or response buffer is null\n");
 		return -EINVAL;
@@ -4168,7 +4173,7 @@ static int qseecom_probe(struct platform_device *pdev)
 	qseecom.commonlib_loaded = false;
 	qseecom.pdev = class_dev;
 	/* Create ION msm client */
-	qseecom.ion_clnt = msm_ion_client_create(-1, "qseecom-kernel");
+	qseecom.ion_clnt = msm_ion_client_create("qseecom-kernel");
 	if (qseecom.ion_clnt == NULL) {
 		pr_err("Ion client cannot be created\n");
 		rc = -ENOMEM;
@@ -4408,8 +4413,7 @@ static int qseecom_suspend(struct platform_device *pdev, pm_message_t state)
 	mutex_lock(&qsee_bw_mutex);
 	mutex_lock(&clk_access_lock);
 
-	if (qseecom.cumulative_mode != INACTIVE &&
-		qseecom.current_mode != INACTIVE) {
+	if (qseecom.current_mode != INACTIVE) {
 		ret = msm_bus_scale_client_update_request(
 			qseecom.qsee_perf_client, INACTIVE);
 		if (ret)

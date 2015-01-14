@@ -1082,7 +1082,9 @@ int kgsl_pwrctrl_init(struct kgsl_device *device)
 	pwr->interval_timeout = pdata->idle_timeout;
 	pwr->strtstp_sleepwake = pdata->strtstp_sleepwake;
 
-	pwr->pm_qos_latency = pdata->pm_qos_latency;
+	if (kgsl_property_read_u32(device, "qcom,pm-qos-latency",
+		&pwr->pm_qos_latency))
+		pwr->pm_qos_latency = 501;
 
 	pm_runtime_enable(device->parentdev);
 
@@ -1398,6 +1400,7 @@ _slumber(struct kgsl_device *device)
 		del_timer_sync(&device->idle_timer);
 		/* make sure power is on to stop the device*/
 		kgsl_pwrctrl_enable(device);
+		kgsl_pwrctrl_irq(device, KGSL_PWRFLAGS_ON);
 		device->ftbl->suspend_context(device);
 		device->ftbl->stop(device);
 		_sleep_accounting(device);
