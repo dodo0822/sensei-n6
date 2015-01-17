@@ -147,17 +147,6 @@ static int selinux_secmark_enabled(void)
 	return (atomic_read(&selinux_secmark_refcount) > 0);
 }
 
-static int selinux_netcache_avc_callback(u32 event)
-{
-	if (event == AVC_CALLBACK_RESET) {
-		sel_netif_flush();
-		sel_netnode_flush();
-		sel_netport_flush();
-		synchronize_net();
-	}
-	return 0;
-}
-
 /*
  * initialise the security for the init task
  */
@@ -431,10 +420,10 @@ static int sb_finish_set_opts(struct super_block *sb)
 		sbsec->flags &= ~SE_SBLABELSUPP;
 
 	/* Special handling. Is genfs but also has in-core setxattr handler*/
-	if (!strcmp(sb->s_type->name, "sysfs")
-	 || !strcmp(sb->s_type->name, "pstore")
-	 || !strcmp(sb->s_type->name, "debugfs")
-	 || !strcmp(sb->s_type->name, "rootfs"))
+	if (!strcmp(sb->s_type->name, "sysfs") ||
+	    !strcmp(sb->s_type->name, "pstore") ||
+	    !strcmp(sb->s_type->name, "debugfs") ||
+	    !strcmp(sb->s_type->name, "rootfs"))
 		sbsec->flags |= SE_SBLABELSUPP;
 
 	/* Initialize the root inode. */
