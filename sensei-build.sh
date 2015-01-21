@@ -16,7 +16,7 @@ DEFCONFIG="shamu_defconfig"
 
 # Kernel Details
 BASE_AK_VER="SENSEI"
-VER=".R51"
+VER=".R39-NOOC"
 AK_VER="$BASE_AK_VER$VER"
 
 # Vars
@@ -29,16 +29,16 @@ export KBUILD_BUILD_HOST=Dojo
 
 # Paths
 KERNEL_DIR=`pwd`
-REPACK_DIR="${HOME}/android/AnyKernel2"
-PATCH_DIR="${HOME}/android/AnyKernel2/patch"
-MODULES_DIR="${HOME}/android/AnyKernel2/modules"
+REPACK_DIR="${HOME}/android/AK-OnePone-AnyKernel2"
+PATCH_DIR="${HOME}/android/AK-OnePone-AnyKernel2/patch"
+MODULES_DIR="${HOME}/android/AK-OnePone-AnyKernel2/modules"
 ZIP_MOVE="${HOME}/android/AK-releases"
 ZIMAGE_DIR="${HOME}/android/sensei-n6/arch/arm/boot"
 
 # Functions
 function clean_all {
 		rm -rf $MODULES_DIR/*
-		cd $REPACK_DIR
+		cd ~/android/sensei-n6/ramdisk
 		rm -rf $KERNEL
 		rm -rf $DTBIMAGE
 		git reset --hard > /dev/null 2>&1
@@ -52,7 +52,7 @@ function make_kernel {
 		echo
 		make $DEFCONFIG
 		make $THREAD
-		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR
+		cp -vr $ZIMAGE_DIR/$KERNEL ~/android/sensei-n6/ramdisk
 }
 
 function make_modules {
@@ -60,9 +60,19 @@ function make_modules {
 		find $KERNEL_DIR -name '*.ko' -exec cp -v {} $MODULES_DIR \;
 }
 
+function make_dtb {
+		$REPACK_DIR/tools/dtbToolCM -2 -o $REPACK_DIR/$DTBIMAGE -s 2048 -p scripts/dtc/ arch/arm/boot/
+}
+
+function make_boot {
+		cp -vr $ZIMAGE_DIR/zImage-dtb ~/android/sensei-n6/ramdisk/zImage-dtb
+		
+		. appendramdisk.sh
+}
+
 
 function make_zip {
-		cd $REPACK_DIR
+		cd ~/android/sensei-n6/out
 		zip -r9 `echo $AK_VER`.zip *
 		mv  `echo $AK_VER`.zip $ZIP_MOVE
 		cd $KERNEL_DIR
@@ -111,7 +121,9 @@ do
 case "$dchoice" in
 	y|Y)
 		make_kernel
+		make_dtb
 		make_modules
+		make_boot
 		make_zip
 		break
 		;;
