@@ -4,6 +4,7 @@ config ARM
 	select ARCH_BINFMT_ELF_RANDOMIZE_PIE
 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
 	select ARCH_HAVE_CUSTOM_GPIO_H
+	select ARCH_SUPPORTS_ATOMIC_RMW
 	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
 	select ARCH_WANT_IPC_PARSE_VERSION
 	select BUILDTIME_EXTABLE_SORT if MMU
@@ -1787,6 +1788,22 @@ config HW_PERF_EVENTS
 	  Enable hardware performance counter support for perf events. If
 	  disabled, perf events will use software events only.
 
+config PERF_EVENTS_USERMODE
+	bool "Enable usermode access for perf events"
+	depends on PERF_EVENTS
+	help
+	  Enable user-mode access to performance counters for perf events.
+	  If enabled, the access permissions allowing CPU performance
+	  counters to be accessed from user-mode are set.
+
+config PERF_EVENTS_RESET_PMU_DEBUGFS
+	bool "Reset PMU via debugfs node"
+	depends on PERF_EVENTS
+	help
+		Enable the debugfs node that can be used to reset PMUs and all
+		state variables associated with PMUs. If enabled, PMU and internal
+		state variable are cleared.
+
 source "mm/Kconfig"
 
 config ARCH_MEMORY_PROBE
@@ -2331,6 +2348,12 @@ config NEON
 	help
 	  Say Y to include support code for NEON, the ARMv7 Advanced SIMD
 	  Extension.
+
+config KERNEL_MODE_NEON
+	bool "Support for NEON in kernel mode"
+	depends on NEON && AEABI
+	help
+	  Say Y to include support for NEON in kernel mode.
 
 endmenu
 

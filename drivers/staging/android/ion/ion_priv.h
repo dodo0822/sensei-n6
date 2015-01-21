@@ -124,6 +124,7 @@ struct ion_heap_ops {
 	int (*map_user) (struct ion_heap *mapper, struct ion_buffer *buffer,
 			 struct vm_area_struct *vma);
 	void (*unmap_user) (struct ion_heap *mapper, struct ion_buffer *buffer);
+	int (*shrink)(struct ion_heap *heap, gfp_t gfp_mask, int nr_to_scan);
 	int (*print_debug)(struct ion_heap *heap, struct seq_file *s,
 			   const struct list_head *mem_map);
 };
@@ -144,10 +145,7 @@ struct ion_heap_ops {
  *			allocating.  These are specified by platform data and
  *			MUST be unique
  * @name:		used for debugging
- * @shrinker:		a shrinker for the heap, if the heap caches system
- *			memory, it must define a shrinker to return it on low
- *			memory conditions, this includes system memory cached
- *			in the deferred free lists for heaps that support it
+ * @shrinker:		a shrinker for the heap
  * @priv:		private heap data
  * @free_list:		free list head if deferred free is used
  * @free_list_size	size of the deferred free list in bytes
@@ -178,6 +176,8 @@ struct ion_heap {
 	wait_queue_head_t waitqueue;
 	struct task_struct *task;
 	int (*debug_show)(struct ion_heap *heap, struct seq_file *, void *);
+	atomic_t total_allocated;
+	atomic_t total_handles;
 };
 
 /**
@@ -200,19 +200,13 @@ bool ion_buffer_fault_user_mappings(struct ion_buffer *buffer);
 /**
  * ion_device_create - allocates and returns an ion device
  * @custom_ioctl:	arch specific ioctl function if applicable
- * @custom_comat_ioctl:	arch specific compat_ioctl function if applicable
  *
  * returns a valid device or -PTR_ERR
  */
 struct ion_device *ion_device_create(long (*custom_ioctl)
 				     (struct ion_client *client,
 				      unsigned int cmd,
-				      unsigned long arg),
-				    long (*custom_compat_ioctl)
-				     (struct ion_client *client,
-				      unsigned int cmd,
-				      unsigned long arg)
-);
+				      unsigned long arg));
 
 /**
  * ion_device_destroy - free and device and it's resource
@@ -241,11 +235,23 @@ void *ion_heap_map_kernel(struct ion_heap *, struct ion_buffer *);
 void ion_heap_unmap_kernel(struct ion_heap *, struct ion_buffer *);
 int ion_heap_map_user(struct ion_heap *, struct ion_buffer *,
 			struct vm_area_struct *);
-int ion_heap_pages_zero(struct page **pages, int num_pages);
 int ion_heap_buffer_zero(struct ion_buffer *buffer);
-int ion_heap_high_order_page_zero(struct page *page, int order);
-int ion_heap_alloc_pages_mem(struct pages_mem *pages_mem);
-void ion_heap_free_pages_mem(struct pages_mem *pages_mem);
+
+int msm_ion_heap_high_order_page_zero(struct page *page, int order);
+int msm_ion_heap_buffer_zero(struct ion_buffer *buffer);
+int msm_ion_heap_pages_zero(struct page **pages, int num_pages);
+int msm_ion_heap_alloc_pages_mem(struct pages_mem *pages_mem);
+void msm_ion_heap_free_pages_mem(struct pages_mem *pages_mem);
+
+/**
+ * ion_heap_init_shrinker
+ * @heap:		the heap
+ *
+ * If a heap sets the ION_HEAP_FLAG_DEFER_FREE flag or defines the shrink op
+ * this function will be called to setup a shrinker to shrink the freelists
+ * and call the heap's shrink op.
+ */
+void ion_heap_init_shrinker(struct ion_heap *heap);
 
 /**
  * ion_heap_init_deferred_free -- initialize deferred free functionality
@@ -327,6 +333,9 @@ void ion_carveout_heap_destroy(struct ion_heap *);
 
 struct ion_heap *ion_chunk_heap_create(struct ion_platform_heap *);
 void ion_chunk_heap_destroy(struct ion_heap *);
+struct ion_heap *ion_cma_heap_create(struct ion_platform_heap *);
+void ion_cma_heap_destroy(struct ion_heap *);
+
 /**
  * kernel api to allocate/free from carveout -- used when carveout is
  * used to back an architecture specific custom heap
@@ -354,13 +363,8 @@ void ion_carveout_free(struct ion_heap *heap, ion_phys_addr_t addr,
  * @low_count:		number of lowmem items in the pool
  * @high_items:		list of highmem items
  * @low_items:		list of lowmem items
- * @shrinker:		a shrinker for the items
  * @mutex:		lock protecting this struct and especially the count
  *			item list
- * @alloc:		function to be used to allocate pageory when the pool
- *			is empty
- * @free:		function to be used to free pageory back to the system
- *			when the shrinker fires
  * @gfp_mask:		gfp_mask to use from alloc
  * @order:		order of pages in the pool
  * @list:		plist node for list of pools

@@ -208,7 +208,7 @@ static struct msm_cpp_buff_queue_info_t *msm_cpp_get_buff_queue_entry(
 	}
 
 	if (buff_queue_info == NULL) {
-		pr_err("error buffer queue entry for sess:%d strm:%d not found\n",
+		CPP_DBG("buffer queue entry for sess:%d strm:%d not found\n",
 			session_id, stream_id);
 	}
 	return buff_queue_info;
@@ -494,7 +494,7 @@ static int cpp_init_mem(struct cpp_device *cpp_dev)
 
 	kref_init(&cpp_dev->refcount);
 	kref_get(&cpp_dev->refcount);
-	cpp_dev->client = msm_ion_client_create(-1, "cpp");
+	cpp_dev->client = msm_ion_client_create("cpp");
 
 	CPP_DBG("E\n");
 	if (!cpp_dev->domain) {
